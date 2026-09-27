@@ -2,7 +2,7 @@
 
 A static research demo for MetaFOA, published with GitHub Pages.
 
-**Live demo:** <https://weiting-lai.github.io/metafoa/>
+**Live demo:** <https://weiting-lai.github.io/MetaFOA/>
 
 The two players contain the same six-second scene. The reconstructed stereo
 monitor was decoded from a MetaFOA four-channel First-Order Ambisonics (FOA)
