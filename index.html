@@ -1,74 +1,794 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f6f8fa" />
-    <meta name="description" content="A listening demo for MetaFOA, an efficient parametric codec for low-bitrate first-order Ambisonics." />
-    <title>MetaFOA</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#F7F6F2" />
+    <meta
+      name="description"
+      content="Interactive companion listening demonstration for An Efficient Parametric Codec for Low-Bitrate First-Order Ambisonics (MetaFOA)."
+    />
+    <title>An Efficient Parametric Codec for Low-Bitrate First-Order Ambisonics</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23F7F6F2'/%3E%3Ccircle cx='32' cy='32' r='22' fill='none' stroke='%23333333' stroke-width='1.5'/%3E%3Cline x1='32' y1='8' x2='32' y2='20' stroke='%23333333' stroke-width='1.5'/%3E%3Ccircle cx='32' cy='32' r='2.5' fill='%23333333'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=Inter:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Google Omnitone FOA Binaural Renderer -->
+    <script
+      src="https://cdn.jsdelivr.net/npm/omnitone@1.2.4/build/omnitone.min.js"
+      defer
+    ></script>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <main class="page">
-      <header class="masthead">
-        <a class="brand" href="./">MetaFOA</a>
-        <span class="preview-label">Research preview</span>
+    <div class="muji-page">
+      <!-- ================================================================
+           PAPER HEADER — Quiet editorial typography with PDF & BibTeX actions
+           ================================================================ -->
+      <header class="paper-header" aria-labelledby="paper-title">
+        <div class="paper-meta-row">
+          <span class="paper-kind">Paper Companion Demonstration</span>
+          <div class="header-actions">
+            <a
+              href="pdf/An_Efficient_Low_Bitrate_Parametric_Codec_for_First_Order_Ambisonics.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="header-action-link"
+            >
+              <span>Read Paper (PDF)</span>
+              <span aria-hidden="true">↗</span>
+            </a>
+            <button
+              type="button"
+              id="headerCopyBibtexBtn"
+              class="header-action-link header-action-btn"
+            >
+              <span id="headerCopyBibtexLabel">Copy BibTeX</span>
+            </button>
+          </div>
+        </div>
+
+        <h1 id="paper-title" class="paper-title">
+          An Efficient Parametric Codec for Low-Bitrate First-Order Ambisonics
+        </h1>
+
+        <p class="paper-authors">
+          Wei-Ting Lai, Amy Bastine, Lachlan Birnie, Thushara D. Abhayapala, Prasanga N. Samarasinghe
+        </p>
+
+        <div class="paper-sub-row">
+          <p class="paper-affiliation">
+            Audio &amp; Acoustic Signal Processing Group, The Australian National University, Canberra, Australia
+          </p>
+          <p class="headphone-tip" role="note">
+            For the best 3D spatial audio experience, we recommend wearing headphones.
+          </p>
+        </div>
+
+        <!-- Hidden status nodes retained for engine telemetry compatibility -->
+        <div class="sr-only" aria-hidden="true">
+          <span id="engineStatusBadge"><span id="engineStatusText">Ready</span></span>
+          <span id="sourceFormatBadge">FOA</span>
+          <span id="activeDecoderLabel">Binaural</span>
+          <span id="specSceneName">Sound Event</span>
+          <span id="specSampleRate">24,000 Hz</span>
+          <span id="specDuration">6.0 s</span>
+        </div>
       </header>
 
-      <section class="intro" aria-labelledby="page-title">
-        <h1 id="page-title">An Efficient Parametric Codec for Low-Bitrate First-Order Ambisonics</h1>
-        <p class="authors">Wei-Ting Lai, Amy Bastine, Lachlan Birnie, Thushara D. Abhayapala, and Prasanga N. Samarasinghe</p>
-        <p class="affiliation">Audio &amp; Acoustic Signal Processing Group · The Australian National University</p>
-        <div class="intro-links">
-          <a href="https://github.com/weiting-lai/MetaFOA" rel="noopener noreferrer">Project repository <span aria-hidden="true">↗</span></a>
-          <span>Paper and research code forthcoming</span>
-        </div>
-      </section>
+      <!-- ================================================================
+           TOP SELECTION BAR — 01 Audio Scene & 02 Listening Mode
+           ================================================================ -->
+      <section class="selection-bar" aria-label="Audio scene and output mode">
+        <div class="selection-group">
+          <span class="section-label">01 / Audio Scene</span>
+          <div class="scene-tabs" role="radiogroup" aria-label="Audio Scene">
+            <button
+              type="button"
+              class="scene-tab is-active"
+              data-scene="sound_event"
+              role="radio"
+              aria-checked="true"
+            >
+              <span class="scene-tab-dot" aria-hidden="true"></span>
+              <span class="scene-tab-name">Sound Event</span>
+            </button>
 
-      <section class="listening" aria-labelledby="listening-title">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Listening demo</p>
-            <h2 id="listening-title">Audio samples</h2>
+            <button
+              type="button"
+              class="scene-tab is-disabled"
+              data-scene="speech"
+              role="radio"
+              aria-checked="false"
+              disabled
+            >
+              <span class="scene-tab-name">Speech</span>
+              <span class="scene-tab-upcoming">Upcoming</span>
+            </button>
+
+            <button
+              type="button"
+              class="scene-tab is-disabled"
+              data-scene="music"
+              role="radio"
+              aria-checked="false"
+              disabled
+            >
+              <span class="scene-tab-name">Music</span>
+              <span class="scene-tab-upcoming">Upcoming</span>
+            </button>
           </div>
-          <p>Headphones recommended for the stereo monitoring renders.</p>
         </div>
 
-        <div class="sample-card">
-          <article class="sample">
-            <div class="sample-heading">
-              <div>
-                <h3>Original FOA</h3>
-                <p class="sample-detail">Original stereo monitoring render</p>
-              </div>
-            </div>
-            <audio controls preload="metadata" aria-label="Play original FOA stereo monitoring render">
-              <source src="audio/original-foa-monitor.wav" type="audio/wav" />
-              Your browser does not support audio playback.
-            </audio>
-          </article>
-
-          <article class="sample">
-            <div class="sample-heading">
-              <div>
-                <h3>Reconstructed FOA</h3>
-                <p class="sample-detail">MetaFOA stereo monitoring render</p>
-              </div>
-            </div>
-            <audio controls preload="metadata" aria-label="Play reconstructed FOA stereo monitoring render">
-              <source src="audio/metafoa-demo.wav" type="audio/wav" />
-              Your browser does not support audio playback.
-            </audio>
-          </article>
-
+        <div class="selection-group selection-group-right">
+          <span class="section-label">02 / Listening Mode</span>
+          <div class="mode-tabs" role="radiogroup" aria-label="Listening Mode">
+            <button
+              type="button"
+              class="mode-tab is-active"
+              data-output-mode="binaural"
+              role="radio"
+              aria-checked="true"
+            >
+              Headphones (Binaural)
+            </button>
+            <button
+              type="button"
+              class="mode-tab"
+              data-output-mode="stereo"
+              role="radio"
+              aria-checked="false"
+            >
+              Speakers (Stereo)
+            </button>
+          </div>
         </div>
-        <p class="source-note">Source recording: <a href="https://zenodo.org/records/7880637" rel="noopener noreferrer">STARSS23</a> · six-second excerpt from <code>fold4_room23_mix005</code></p>
       </section>
 
-      <footer>
-        <span>MetaFOA</span>
-        <span>Audio &amp; Acoustic Signal Processing Group · ANU</span>
+      <!-- ================================================================
+           MAIN WORKSPACE — Left: 3D Sound Field | Right: Audio Comparison
+           ================================================================ -->
+      <main class="workspace-grid">
+        <!-- LEFT PANEL: 03 / 3D SOUND FIELD -->
+        <section class="workspace-column spatial-column" aria-labelledby="spatial-heading">
+          <div class="column-header">
+            <div>
+              <span class="section-label">03 / Sound Field</span>
+              <h2 id="spatial-heading" class="column-title">Listening Direction</h2>
+            </div>
+
+            <div class="angle-readouts" aria-live="polite">
+              <div class="angle-item">
+                <span class="angle-name">Azimuth θ</span>
+                <span class="angle-val" id="thetaValue">0.0°</span>
+              </div>
+              <div class="angle-item">
+                <span class="angle-name">Elevation φ</span>
+                <span class="angle-val" id="phiValue">0.0°</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="canvas-stage" id="canvasContainer">
+            <canvas
+              id="spatialCanvas"
+              aria-label="Interactive 3D sound field and head orientation controller"
+              tabindex="0"
+            ></canvas>
+            <span class="canvas-caption">Drag to rotate listening direction</span>
+          </div>
+
+          <div class="spatial-controls-row">
+            <div class="angle-presets" role="group" aria-label="Preset angles">
+              <button type="button" class="preset-angle-btn" data-theta="0" data-phi="0">Front 0°</button>
+              <button type="button" class="preset-angle-btn" data-theta="90" data-phi="0">Left +90°</button>
+              <button type="button" class="preset-angle-btn" data-theta="180" data-phi="0">Rear 180°</button>
+              <button type="button" class="preset-angle-btn" data-theta="-90" data-phi="0">Right −90°</button>
+            </div>
+
+            <div class="angle-actions">
+              <button
+                id="gyroButton"
+                type="button"
+                class="text-action-btn"
+                title="Use mobile device motion sensors"
+              >
+                Motion Sensor
+              </button>
+              <button
+                id="resetOrientationButton"
+                type="button"
+                class="text-action-btn"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- RIGHT PANEL: 04 / AUDIO COMPARISON -->
+        <section class="workspace-column comparison-column" aria-labelledby="comparison-heading">
+          <div class="column-header">
+            <div>
+              <span class="section-label">04 / Evaluation</span>
+              <h2 id="comparison-heading" class="column-title">Audio Comparison</h2>
+            </div>
+            <span class="column-note">Synchronized playback &amp; head angle</span>
+          </div>
+
+          <!-- Minimalist Transport & Waveform -->
+          <div class="transport-module">
+            <div class="transport-main">
+              <button
+                id="playButton"
+                type="button"
+                class="play-trigger"
+                aria-label="Play or pause audio"
+              >
+                <svg class="icon-play" viewBox="0 0 24 24" aria-hidden="true">
+                  <polygon points="8,5 19,12 8,19" />
+                </svg>
+                <svg class="icon-pause" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="7" y="5" width="3" height="14" />
+                  <rect x="14" y="5" width="3" height="14" />
+                </svg>
+                <span id="playButtonLabel">Play</span>
+              </button>
+
+              <div class="scrubber-area">
+                <div class="waveform-box">
+                  <canvas id="waveformCanvas" aria-hidden="true"></canvas>
+                  <input
+                    id="timelineSlider"
+                    type="range"
+                    min="0"
+                    max="6"
+                    step="0.01"
+                    value="0"
+                    aria-label="Audio timeline"
+                  />
+                </div>
+                <div class="scrubber-times">
+                  <span id="currentTimeLabel">0:00.0</span>
+                  <span id="durationLabel">0:06.0</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="transport-aux">
+              <div class="aux-buttons">
+                <button
+                  id="loopButton"
+                  type="button"
+                  class="aux-btn is-active"
+                  aria-pressed="true"
+                >
+                  Loop
+                </button>
+                <button
+                  id="muteButton"
+                  type="button"
+                  class="aux-btn"
+                  aria-pressed="false"
+                >
+                  Mute
+                </button>
+              </div>
+
+              <div class="volume-control">
+                <label for="volumeSlider" class="volume-label">Level</label>
+                <input
+                  id="volumeSlider"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.01"
+                  value="0.9"
+                  aria-label="Output volume"
+                />
+                <span class="volume-val" id="volumeValueLabel">90%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Clean MUJI Hairline Stream Selector -->
+          <div class="stream-list" role="radiogroup" aria-label="Audio Stream Selection">
+            <!-- 1: Original FOA -->
+            <button
+              type="button"
+              class="abc-card"
+              data-stream="original"
+              role="radio"
+              aria-checked="false"
+            >
+              <span class="radio-mark" aria-hidden="true"></span>
+              <span class="stream-body">
+                <span class="stream-row-top">
+                  <span class="stream-name">Original FOA</span>
+                  <span class="stream-spec">Reference</span>
+                </span>
+                <span class="stream-desc">Uncompressed 4-channel First-Order Ambisonics</span>
+              </span>
+            </button>
+
+            <!-- 2: MetaFOA (Proposed) -->
+            <button
+              type="button"
+              class="abc-card is-active"
+              data-stream="reconstructed"
+              role="radio"
+              aria-checked="true"
+            >
+              <span class="radio-mark" aria-hidden="true"></span>
+              <span class="stream-body">
+                <span class="stream-row-top">
+                  <span class="stream-name">MetaFOA</span>
+                  <span class="stream-spec">Proposed · 750 bit/s</span>
+                </span>
+                <span class="stream-desc" id="abcReconstructedDesc">
+                  Proposed MetaFOA reconstruction
+                </span>
+              </span>
+            </button>
+
+            <!-- 3: Baseline Codec (DirAC [1]) -->
+            <button
+              type="button"
+              class="abc-card"
+              data-stream="baseline"
+              role="radio"
+              aria-checked="false"
+            >
+              <span class="radio-mark" aria-hidden="true"></span>
+              <span class="stream-body">
+                <span class="stream-row-top">
+                  <span class="stream-name">Baseline Codec (DirAC)</span>
+                  <span class="stream-spec">Baseline · 750 bit/s</span>
+                </span>
+                <span class="stream-desc">
+                  Conventional DirAC metadata coding [1]
+                </span>
+              </span>
+            </button>
+          </div>
+
+          <p class="comparison-footnote">
+            Switch versions anytime while rotating the sound field (or press keys <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>).
+          </p>
+        </section>
+      </main>
+
+      <!-- ================================================================
+           05 / SYSTEM ARCHITECTURE (FIGURE 1 + PRODUCT OVERVIEW)
+           ================================================================ -->
+      <section class="editorial-section" aria-labelledby="section-05-title">
+        <div class="editorial-grid">
+          <div class="editorial-copy">
+            <span class="section-label">05 / System Architecture</span>
+            <h2 id="section-05-title" class="editorial-title">
+              Lightweight Spatial Audio Compression, Built to Pair with Any Monaural Codec
+            </h2>
+            <p class="editorial-lead">
+              Delivering 360° spatial audio at ultra-low bitrates does not require training a monolithic multi-channel neural network from scratch. By combining the physics-grounded <strong>Directional Audio Coding (DirAC)</strong> framework with a unified <strong>3-D Directivity Vector</strong> representation, MetaFOA captures a complete three-dimensional sound field using just <strong>750 bit/s</strong> of spatial metadata.
+            </p>
+            <div class="feature-points">
+              <div class="feature-item">
+                <h3 class="feature-heading">Plug-and-Play with Any Monaural Codec</h3>
+                <p class="feature-text">
+                  MetaFOA cleanly separates the omnidirectional audio signal (<span class="math-inline">W<sub>t</sub></span>) from the spatial cues. The audio core can be compressed by any off-the-shelf monaural codec—such as <strong>EnCodec</strong>, <strong>DAC</strong>, or future neural audio tokenizers—entirely pretrained and frozen, with zero fine-tuning required.
+                </p>
+              </div>
+              <div class="feature-item">
+                <h3 class="feature-heading">Unified 3-D Directivity Vector &amp; Fast Fitting</h3>
+                <p class="feature-text">
+                  Instead of encoding sound direction (DOA) and room diffuseness separately, MetaFOA merges them into a single 3-D directivity vector and compresses all frequency bands jointly via Cross-Band Residual Vector Quantization (RVQ). The entire codebook fits offline via stage-wise <em>k</em>-means in under <strong>7 minutes</strong> without backpropagation.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <figure class="editorial-figure">
+            <a
+              href="pdf/Fig1.pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="figure-frame"
+              title="Open high-resolution Figure 1 PDF"
+            >
+              <img
+                src="pdf/Fig1.png"
+                alt="Figure 1: Overview of the proposed parametric FOA codec architecture showing the frozen monaural Signal Codec branch and the proposed Cross-band RVQ Metadata Codec branch."
+                loading="lazy"
+              />
+            </a>
+            <figcaption class="figure-caption">
+              <span><strong>Figure 1.</strong> Overview of the proposed MetaFOA architecture. The omnidirectional channel <span class="math-inline">W<sub>t</sub></span> is processed by any pretrained monaural codec, while bandwise 3-D directivity vectors <span class="math-inline">v<sub>t,1:B</sub></span> are jointly quantized via Cross-Band RVQ at a constant bitrate.</span>
+              <a href="pdf/Fig1.pdf" target="_blank" rel="noopener noreferrer" class="figure-pdf-link">PDF ↗</a>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           06 / SPATIAL PRESERVATION (FIGURE 2 + EXPLANATION)
+           ================================================================ -->
+      <section class="editorial-section" aria-labelledby="section-06-title">
+        <div class="editorial-header-stack">
+          <span class="section-label">06 / Spatial Fidelity</span>
+          <h2 id="section-06-title" class="editorial-title">
+            How MetaFOA Preserves Fine-Grained Spatial Detail Without Increasing Bitrate
+          </h2>
+          <p class="editorial-lead editorial-lead-wide">
+            In real-world acoustic scenes, low-frequency ambience and high-frequency sound events arrive from different directions simultaneously. Preserving this spatial clarity requires high frequency resolution—something conventional low-bitrate parameter coders struggle to sustain.
+          </p>
+        </div>
+
+        <figure class="editorial-figure editorial-figure-wide">
+          <a
+            href="pdf/Fig2.pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="figure-frame"
+            title="Open high-resolution Figure 2 PDF"
+          >
+            <img
+              src="pdf/Fig2.png"
+              alt="Figure 2: Reconstruction of the 3-D directivity vector across ERB frequency bands at 750 bps comparing Ground Truth, Baseline DirAC, and Proposed MetaFOA."
+              loading="lazy"
+            />
+          </a>
+          <figcaption class="figure-caption">
+            <span><strong>Figure 2.</strong> Reconstruction of the 3-D directivity vector (<span class="math-inline">[v<sub>t,b</sub>]<sub>y</sub></span> component) on a real-world STARSS23 recording at <span class="math-inline">R<sub>sp</sub> = 750 bit/s</span>. As the number of frequency bands <span class="math-inline">B</span> increases from 3 to 36, MetaFOA progressively recovers sharper time-frequency spatial structure while reducing directivity distortion.</span>
+            <a href="pdf/Fig2.pdf" target="_blank" rel="noopener noreferrer" class="figure-pdf-link">PDF ↗</a>
+          </figcaption>
+        </figure>
+
+        <div class="three-col-notes">
+          <div class="note-block">
+            <span class="note-num">01</span>
+            <h3 class="feature-heading">Natural Diffuseness Weighting</h3>
+            <p class="feature-text">
+              Each band’s 3-D directivity vector <span class="math-inline">v<sub>t,b</sub> = √(1 − D<sub>t,b</sub>) Ω<sub>t,b</sub></span> points in the direction of arrival while its length reflects directional energy. Diffuse background noise naturally shrinks toward the origin, so quantizer capacity is automatically focused on clear directional sources.
+            </p>
+          </div>
+          <div class="note-block">
+            <span class="note-num">02</span>
+            <h3 class="feature-heading">Why Conventional DirAC Degrades at 750 bit/s</h3>
+            <p class="feature-text">
+              Conventional DirAC [1] divides its bit budget across bands independently. At 750 bit/s, increasing from <span class="math-inline">B = 3</span> to <span class="math-inline">B = 5</span> bands starves each band down to just 3 bits (8 coarse directions), causing spatial distortion to rise instead of fall.
+            </p>
+          </div>
+          <div class="note-block">
+            <span class="note-num">03</span>
+            <h3 class="feature-heading">36-Band Resolution at Zero Extra Bitrate</h3>
+            <p class="feature-text">
+              Because Cross-Band RVQ quantizes the full <span class="math-inline">B × 3</span> directivity matrix as a unified pattern per frame, the spatial bitrate is completely decoupled from <span class="math-inline">B</span>. Scaling up to all <strong>36 ERB auditory bands</strong> costs zero additional bits while faithfully preserving the ground-truth spatial image.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           07 / QUANTITATIVE BENCHMARK (TABLE 1: PROPOSED VS BASELINE DIRAC)
+           ================================================================ -->
+      <section class="editorial-section" aria-labelledby="section-07-title">
+        <div class="editorial-header-stack">
+          <span class="section-label">07 / Quantitative Benchmark</span>
+          <h2 id="section-07-title" class="editorial-title">
+            Objective Comparison Against Baseline DirAC Across Diverse Acoustic Environments
+          </h2>
+          <p class="editorial-lead editorial-lead-wide">
+            We evaluate FOA waveform and spatial reconstruction across three benchmarks—<strong>SpatialVCTK</strong> (anechoic spatial speech), <strong>STARSS23</strong> (real-world multi-source sound events), and <strong>MEIR</strong> (measured reverberant rooms)—pairing both Baseline DirAC [1] and MetaFOA with identical pretrained <strong>EnCodec</strong> and <strong>DAC</strong> monaural backbones (6 kbps). At the low spatial metadata budget of <strong>0.75 kbps (750 bit/s)</strong>, MetaFOA eliminates the severe angular breakdown seen in conventional per-band quantization and even outperforms Baseline DirAC operating at double the metadata bitrate (1.50 kbps) on reverberant recordings.
+          </p>
+        </div>
+
+        <div class="table-scroll-wrap">
+          <table class="muji-table">
+            <caption>
+              <strong>Table 1.</strong> FOA reconstruction performance comparing Baseline DirAC [1] and Proposed MetaFOA. Lower values indicate better performance across all metrics. Best results per metric are shown in <strong>bold</strong>, and best results at <span class="math-inline">R<sub>sp</sub> = 0.75 kbps</span> are <u>underlined</u>.
+            </caption>
+            <thead>
+              <tr class="thead-group-row">
+                <th scope="col" rowspan="2">Method</th>
+                <th scope="col" rowspan="2">W-ch Codec</th>
+                <th scope="col" rowspan="2" class="num-col">R<sub>sp</sub><br /><span class="th-unit">(kbps)</span></th>
+                <th scope="col" rowspan="2" class="num-col">Stages<br /><span class="th-unit">(S)</span></th>
+                <th scope="col" rowspan="2" class="num-col">R<sub>tot</sub><br /><span class="th-unit">(kbps)</span></th>
+                <th scope="colgroup" colspan="5" class="group-th">SpatialVCTK (Speech)</th>
+                <th scope="colgroup" colspan="4" class="group-th">STARSS23 (Real Sound Events)</th>
+                <th scope="colgroup" colspan="4" class="group-th">MEIR (Reverberant Rooms)</th>
+              </tr>
+              <tr class="thead-metric-row">
+                <th scope="col" class="num-col">STFT ↓</th>
+                <th scope="col" class="num-col">Mel ↓</th>
+                <th scope="col" class="num-col">Ang ↓</th>
+                <th scope="col" class="num-col">Diff ↓</th>
+                <th scope="col" class="num-col">WER ↓</th>
+                <th scope="col" class="num-col">STFT ↓</th>
+                <th scope="col" class="num-col">Mel ↓</th>
+                <th scope="col" class="num-col">Ang ↓</th>
+                <th scope="col" class="num-col">Diff ↓</th>
+                <th scope="col" class="num-col">STFT ↓</th>
+                <th scope="col" class="num-col">Mel ↓</th>
+                <th scope="col" class="num-col">Ang ↓</th>
+                <th scope="col" class="num-col">Diff ↓</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Baseline: DirAC [1] -->
+              <tr>
+                <td rowspan="4" class="method-cell">Baseline (DirAC [1])</td>
+                <td>EnCodec</td>
+                <td class="num-col">0.75</td>
+                <td class="num-col">–</td>
+                <td class="num-col">6.75</td>
+                <td class="num-col">2.06</td>
+                <td class="num-col">2.21</td>
+                <td class="num-col">29.21°</td>
+                <td class="num-col"><u><strong>0.00</strong></u></td>
+                <td class="num-col">0.15</td>
+                <td class="num-col">2.04</td>
+                <td class="num-col">1.67</td>
+                <td class="num-col">47.42°</td>
+                <td class="num-col">0.30</td>
+                <td class="num-col">2.24</td>
+                <td class="num-col">1.45</td>
+                <td class="num-col">31.22°</td>
+                <td class="num-col">0.24</td>
+              </tr>
+              <tr>
+                <td>EnCodec</td>
+                <td class="num-col">1.50</td>
+                <td class="num-col">–</td>
+                <td class="num-col">7.50</td>
+                <td class="num-col">1.18</td>
+                <td class="num-col">0.94</td>
+                <td class="num-col">3.56°</td>
+                <td class="num-col"><strong>0.00</strong></td>
+                <td class="num-col">0.15</td>
+                <td class="num-col">1.92</td>
+                <td class="num-col">1.60</td>
+                <td class="num-col">39.19°</td>
+                <td class="num-col">0.32</td>
+                <td class="num-col">1.97</td>
+                <td class="num-col">1.31</td>
+                <td class="num-col">18.24°</td>
+                <td class="num-col">0.25</td>
+              </tr>
+              <tr>
+                <td>DAC</td>
+                <td class="num-col">0.75</td>
+                <td class="num-col">–</td>
+                <td class="num-col">6.75</td>
+                <td class="num-col">1.91</td>
+                <td class="num-col">2.02</td>
+                <td class="num-col">29.21°</td>
+                <td class="num-col"><u><strong>0.00</strong></u></td>
+                <td class="num-col"><u><strong>0.14</strong></u></td>
+                <td class="num-col">1.66</td>
+                <td class="num-col">1.22</td>
+                <td class="num-col">47.48°</td>
+                <td class="num-col">0.30</td>
+                <td class="num-col">2.17</td>
+                <td class="num-col">1.42</td>
+                <td class="num-col">31.16°</td>
+                <td class="num-col">0.24</td>
+              </tr>
+              <tr class="group-divider-row">
+                <td>DAC</td>
+                <td class="num-col">1.50</td>
+                <td class="num-col">–</td>
+                <td class="num-col">7.50</td>
+                <td class="num-col"><strong>0.91</strong></td>
+                <td class="num-col"><strong>0.60</strong></td>
+                <td class="num-col">3.56°</td>
+                <td class="num-col"><strong>0.00</strong></td>
+                <td class="num-col"><strong>0.14</strong></td>
+                <td class="num-col">1.53</td>
+                <td class="num-col">1.13</td>
+                <td class="num-col">39.19°</td>
+                <td class="num-col">0.32</td>
+                <td class="num-col">1.87</td>
+                <td class="num-col">1.28</td>
+                <td class="num-col"><strong>18.15°</strong></td>
+                <td class="num-col">0.25</td>
+              </tr>
+
+              <!-- Proposed: MetaFOA -->
+              <tr class="proposed-row-highlight">
+                <td rowspan="6" class="method-cell method-cell-proposed">Proposed (MetaFOA)</td>
+                <td>EnCodec</td>
+                <td class="num-col">0.75</td>
+                <td class="num-col">5</td>
+                <td class="num-col">6.75</td>
+                <td class="num-col">1.23</td>
+                <td class="num-col">0.97</td>
+                <td class="num-col"><u>3.51°</u></td>
+                <td class="num-col">0.02</td>
+                <td class="num-col">0.15</td>
+                <td class="num-col">1.65</td>
+                <td class="num-col">1.44</td>
+                <td class="num-col">37.98°</td>
+                <td class="num-col"><u><strong>0.20</strong></u></td>
+                <td class="num-col">1.78</td>
+                <td class="num-col">1.24</td>
+                <td class="num-col">20.84°</td>
+                <td class="num-col"><u><strong>0.22</strong></u></td>
+              </tr>
+              <tr>
+                <td>EnCodec</td>
+                <td class="num-col">1.50</td>
+                <td class="num-col">10</td>
+                <td class="num-col">7.50</td>
+                <td class="num-col">1.22</td>
+                <td class="num-col">0.95</td>
+                <td class="num-col">2.72°</td>
+                <td class="num-col">0.02</td>
+                <td class="num-col">0.15</td>
+                <td class="num-col">1.65</td>
+                <td class="num-col">1.43</td>
+                <td class="num-col">34.89°</td>
+                <td class="num-col"><strong>0.20</strong></td>
+                <td class="num-col">1.78</td>
+                <td class="num-col">1.24</td>
+                <td class="num-col">19.61°</td>
+                <td class="num-col"><strong>0.22</strong></td>
+              </tr>
+              <tr>
+                <td>EnCodec</td>
+                <td class="num-col">3.00</td>
+                <td class="num-col">20</td>
+                <td class="num-col">9.00</td>
+                <td class="num-col">1.21</td>
+                <td class="num-col">0.94</td>
+                <td class="num-col">2.18°</td>
+                <td class="num-col">0.02</td>
+                <td class="num-col">0.15</td>
+                <td class="num-col">1.64</td>
+                <td class="num-col">1.43</td>
+                <td class="num-col">33.06°</td>
+                <td class="num-col"><strong>0.20</strong></td>
+                <td class="num-col">1.78</td>
+                <td class="num-col">1.24</td>
+                <td class="num-col">18.84°</td>
+                <td class="num-col">0.23</td>
+              </tr>
+              <tr class="proposed-row-highlight">
+                <td>DAC</td>
+                <td class="num-col">0.75</td>
+                <td class="num-col">5</td>
+                <td class="num-col">6.75</td>
+                <td class="num-col"><u>0.99</u></td>
+                <td class="num-col"><u>0.67</u></td>
+                <td class="num-col"><u>3.51°</u></td>
+                <td class="num-col">0.02</td>
+                <td class="num-col"><u><strong>0.14</strong></u></td>
+                <td class="num-col"><u>1.26</u></td>
+                <td class="num-col"><u>0.96</u></td>
+                <td class="num-col"><u>37.80°</u></td>
+                <td class="num-col"><u><strong>0.20</strong></u></td>
+                <td class="num-col"><u>1.69</u></td>
+                <td class="num-col"><u>1.21</u></td>
+                <td class="num-col"><u>20.76°</u></td>
+                <td class="num-col"><u><strong>0.22</strong></u></td>
+              </tr>
+              <tr>
+                <td>DAC</td>
+                <td class="num-col">1.50</td>
+                <td class="num-col">10</td>
+                <td class="num-col">7.50</td>
+                <td class="num-col">0.97</td>
+                <td class="num-col">0.65</td>
+                <td class="num-col">2.72°</td>
+                <td class="num-col">0.02</td>
+                <td class="num-col"><strong>0.14</strong></td>
+                <td class="num-col">1.26</td>
+                <td class="num-col">0.96</td>
+                <td class="num-col">34.61°</td>
+                <td class="num-col"><strong>0.20</strong></td>
+                <td class="num-col"><strong>1.68</strong></td>
+                <td class="num-col">1.21</td>
+                <td class="num-col">19.51°</td>
+                <td class="num-col"><strong>0.22</strong></td>
+              </tr>
+              <tr>
+                <td>DAC</td>
+                <td class="num-col">3.00</td>
+                <td class="num-col">20</td>
+                <td class="num-col">9.00</td>
+                <td class="num-col">0.96</td>
+                <td class="num-col">0.63</td>
+                <td class="num-col"><strong>2.17°</strong></td>
+                <td class="num-col">0.02</td>
+                <td class="num-col"><strong>0.14</strong></td>
+                <td class="num-col"><strong>1.25</strong></td>
+                <td class="num-col"><strong>0.95</strong></td>
+                <td class="num-col"><strong>32.73°</strong></td>
+                <td class="num-col"><strong>0.20</strong></td>
+                <td class="num-col"><strong>1.68</strong></td>
+                <td class="num-col"><strong>1.20</strong></td>
+                <td class="num-col">18.75°</td>
+                <td class="num-col">0.23</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ================================================================
+           08 / CITATION (ONE-CLICK BIBTEX) & REFERENCES / OPEN-SOURCE TOOLS
+           ================================================================ -->
+      <footer class="editorial-section footer-section" aria-labelledby="section-08-title">
+        <div class="footer-grid">
+          <!-- Left: One-Click BibTeX Citation -->
+          <div class="citation-column">
+            <div class="citation-header">
+              <div>
+                <span class="section-label">08 / Citation</span>
+                <h2 id="section-08-title" class="column-title">BibTeX Reference</h2>
+              </div>
+              <button
+                type="button"
+                id="copyBibtexBtn"
+                class="text-action-btn"
+              >
+                Copy BibTeX
+              </button>
+            </div>
+
+            <pre class="bibtex-box" id="bibtexContent"><code>@article{lai2026metafoa,
+  title   = {An Efficient Parametric Codec for Low-Bitrate First-Order Ambisonics},
+  author  = {Lai, Wei-Ting and Bastine, Amy and Birnie, Lachlan and Abhayapala, Thushara D. and Samarasinghe, Prasanga N.},
+  year    = {2026},
+  institution = {Audio \&amp; Acoustic Signal Processing Group, The Australian National University}
+}</code></pre>
+          </div>
+
+          <!-- Right: Baseline Reference & Open-Source Rendering Tools -->
+          <div class="references-column">
+            <div>
+              <span class="section-label">09 / References &amp; Open-Source Credits</span>
+              <h2 class="column-title">Baseline Literature &amp; Web Rendering Stack</h2>
+            </div>
+
+            <div class="ref-group">
+              <h3 class="ref-group-title">Baseline Codec Reference</h3>
+              <ol class="ref-list">
+                <li>
+                  [1] G. Fuchs, F. Ghido, D. Weckbecker, and O. Thiergart, “A first-order DirAC-based parametric ambisonic coder for immersive communications,” in <em>Proc. IEEE Int. Conf. Acoust., Speech, Signal Process. (ICASSP)</em>, 2025, pp. 12937–12941.
+                </li>
+              </ol>
+            </div>
+
+            <div class="ref-group">
+              <h3 class="ref-group-title">Interactive Spatial Audio Rendering &amp; Open-Source Tools</h3>
+              <ul class="tool-ref-list">
+                <li>
+                  <strong>Google Omnitone (FOA Binaural Renderer)</strong> — Real-time First-Order Ambisonics (ACN/SN3D) to binaural HRTF headphone decoding in the browser.
+                  <a href="https://github.com/GoogleChrome/omnitone" target="_blank" rel="noopener noreferrer">github.com/GoogleChrome/omnitone ↗</a>
+                </li>
+                <li>
+                  <strong>W3C Web Audio API</strong> — Real-time 3-D spherical harmonic sound field rotation, virtual stereo loudspeaker decoding (±30° cardioid pair), and sample-synchronized multi-stream switching.
+                  <a href="https://www.w3.org/TR/webaudio/" target="_blank" rel="noopener noreferrer">w3.org/TR/webaudio ↗</a>
+                </li>
+                <li>
+                  <strong>Monaural Neural Audio Codecs</strong> — Compatible with pretrained <a href="https://github.com/facebookresearch/encodec" target="_blank" rel="noopener noreferrer">EnCodec ↗</a> and <a href="https://github.com/descriptinc/descript-audio-codec" target="_blank" rel="noopener noreferrer">Descript Audio Codec (DAC) ↗</a> for omnidirectional <span class="math-inline">W</span>-channel compression.
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </footer>
-    </main>
+    </div>
+
+    <script src="audio/default-foa-data.js"></script>
+    <script src="script.js"></script>
   </body>
 </html>

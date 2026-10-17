@@ -1,22 +1,20 @@
-# MetaFOA listening demo
+# MetaFOA — Interactive Companion Demo
 
-A static research demo for MetaFOA, published with GitHub Pages.
+Interactive First-Order Ambisonics (FOA) listening evaluation demo for the paper:
+**An Efficient Parametric Codec for Low-Bitrate First-Order Ambisonics**  
+*Wei-Ting Lai, Amy Bastine, Lachlan Birnie, Thushara D. Abhayapala, Prasanga N. Samarasinghe*  
+Audio & Acoustic Signal Processing Group, The Australian National University, Canberra, Australia  
+arXiv: [https://arxiv.org/abs/2609.33554](https://arxiv.org/abs/2609.33554)
 
-**Live demo:** <https://weiting-lai.github.io/MetaFOA/>
+## Unified Studio Console Layout
 
-The two players contain the same six-second scene. The reconstructed stereo
-monitor was decoded from a MetaFOA four-channel First-Order Ambisonics (FOA)
-output. The original comes from the STARSS23 FOA recording
-`fold4_room23_mix005.wav`, seconds 60–66. For browser playback, it is rendered
-to stereo using virtual loudspeakers at ±30° from the FOA channels in ACN
-order (W, Y, Z, X): `L = 0.707W + 0.612X + 0.354Y` and
-`R = 0.707W + 0.612X - 0.354Y`. The stereo render is for convenient listening,
-not a replacement for the four-channel spatial signal. Source recording:
-<https://zenodo.org/records/7880637>. Dataset copyright and license are in
-[`audio/STARSS23-LICENSE.txt`](audio/STARSS23-LICENSE.txt).
-
-This repository currently contains only the demo website and its listening
-samples. The manuscript and full research implementation will be released when
-the work is ready to share.
-
-Open `index.html` directly or serve the directory with any static HTTP server.
+1. **01 / Audio Scene**
+   - Clean category tabs: **Sound Event** (`ACTIVE`), **Speech** (`UPCOMING`), and **Music** (`UPCOMING`).
+   - To enable **Speech** or **Music** in the future, remove the `disabled` attribute and `is-upcoming` class on the corresponding `.scene-tab` button in `index.html`, and update `PRESET_SCENES` in `script.js`.
+2. **02 / Listening Mode**
+   - Toggle between **Headphones (Binaural)** (Omnitone `FOARenderer`) and **Speakers (Stereo)** (custom Web Audio FOA-to-Stereo virtual speaker decoder).
+3. **03 / Interactive 3D Sound Field (Left Panel)**
+   - Sculpted 3D human head surrounded by a 360° azimuth ring ($\theta$) and elevation axis ($\phi$).
+   - Drag with mouse/touch or enable **Motion Control (Gyro)** (`DeviceOrientationEvent`) to rotate the listening direction in real time.
+4. **04 / Audio Comparison (Right Panel)**
+   - Placed directly alongside the 3D head so listeners can rotate head orientation while instantaneously toggling between **Original FOA**, **MetaFOA** (`PROPOSED · 750 bit/s`), and **Baseline Codec** (`BASELINE · 750 bit/s`) via click or keys `1` / `2` / `3`.
