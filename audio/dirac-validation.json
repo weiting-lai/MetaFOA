@@ -1,0 +1,66 @@
+{
+  "status": "passed",
+  "scope": "All 1000 frozen SpatialVCTK clips, Fuchs 750 bps + exact historical EnCodec W",
+  "paper_table_1_expected_rounded": {
+    "angular_deg": 29.21,
+    "diffuseness": 0.0
+  },
+  "recomputed": {
+    "clips": 1000,
+    "clips_with_valid_angle": 1000,
+    "angular_error_deg_equal_clip": 29.20655085449009,
+    "diffuseness_mae_global": 0.0003357955522955748,
+    "diffuseness_error_sum": 41964.642574231126,
+    "diffuseness_weight_sum": 124970811.21936035
+  },
+  "max_per_clip_angle_difference_deg": 1.6091568220133468e-05,
+  "max_per_clip_diffuseness_difference": 4.1894894451572566e-08,
+  "all_W_channels_exact": true,
+  "design": {
+    "mode": "fuchs_inspired",
+    "version": 1,
+    "rates_bps": [
+      750,
+      1500,
+      3000
+    ],
+    "parameter_band_edges": [
+      0,
+      6,
+      11,
+      16,
+      20,
+      24
+    ],
+    "parameter_band_edges_hz": [
+      0.0,
+      400.0,
+      1200.0,
+      2800.0,
+      6000.0,
+      12000.0
+    ],
+    "doa_period_ms": 40,
+    "diffuseness_period_ms": 40,
+    "doa_bits": [
+      2,
+      11
+    ],
+    "doa_quantizer": "ivas_quasi_uniform_spherical_grid",
+    "diffuseness_bits": 3,
+    "diffuseness_quantizer": "ivas_nonuniform_fixed_table",
+    "allocator": "decoded_diffuseness_priority_cbr",
+    "diffuse_max_hz": 8000.0,
+    "header_bits": 24,
+    "maximum_useful_parameter_bps": 1750,
+    "over_cap_policy": "zero_fill_to_requested_wire_rate",
+    "sha256": "35444ce29e5bf017eda40a21019f8feb9bf9b8dd71fa6958aef2b492f59d7892"
+  },
+  "elapsed_seconds": 216.37245869636536,
+  "source_sha256": {
+    "n_dirac\\analysis.py": "0c14ec8faa59c6ef4bb3e7a9ff867ac303fc5794c6b9de44ef85a9125c092863",
+    "n_dirac\\baselines\\manual.py": "592fe6352f8a1832d18ef19b120a5d54eaa17f53712637ec842b3098f5ff8cae",
+    "n_dirac\\renderer_adapter.py": "2878448fca8452284ba217ceb7dde7cb6af44db4105d21d0459588d6ee7b8022"
+  },
+  "all_packet_bit_counts_and_allocation_histograms_exact": true
+}

@@ -1,0 +1,66 @@
+{
+  "music": {
+    "reconstruction_file_hashes_match_previous_verified_compressed_bundles": true,
+    "stages": 5,
+    "samples": 2553289
+  },
+  "speech": {
+    "encodec": {
+      "all_51_payload_and_audio_hashes_match": true,
+      "all_metadata_stages": 5,
+      "samples": 24366715,
+      "fresh_independent_decodes": [
+        {
+          "segment": 0,
+          "max_abs_difference": 0.0
+        },
+        {
+          "segment": 25,
+          "max_abs_difference": 0.0
+        },
+        {
+          "segment": 50,
+          "max_abs_difference": 0.0
+        }
+      ]
+    },
+    "dac": {
+      "all_51_payload_and_audio_hashes_match": true,
+      "all_metadata_stages": 5,
+      "samples": 24366715,
+      "fresh_independent_decodes": [
+        {
+          "segment": 0,
+          "max_abs_difference": 2.9775037546642125e-08
+        },
+        {
+          "segment": 25,
+          "max_abs_difference": 0.0
+        },
+        {
+          "segment": 50,
+          "max_abs_difference": 0.0
+        }
+      ]
+    }
+  },
+  "sound_event": {
+    "source": "STARSS23/foa_dev/dev-test-sony/fold4_room23_mix002.wav",
+    "samples": 1072800,
+    "newly_encoded": true,
+    "payloads": {
+      "spatial_0750.mfoa": {
+        "bytes": 4249,
+        "sha256": "ea11ab97fc00401a8ee3ca009e14891410dcd230c3b9f46626e339203aa7fda0"
+      },
+      "W_6kbps.ecdc": {
+        "bytes": 33598,
+        "sha256": "aff7cbb01dff5f37d9234b9601a3fdd4b21aad4a3944038cf48ad8a8955bc38c"
+      },
+      "W_native_8quantizers.dac": {
+        "bytes": 77096,
+        "sha256": "ec4fd3f957af02ffb2954315f85f57f67e42347ed40d99dd0d14e80e565cac5e"
+      }
+    }
+  }
+}

@@ -1,5 +1,5 @@
 /**
- * FOA — N-DirAC Spatial Audio Listening System
+ * MetaFOA — Spatial Audio Listening System
  * Japanese MUJI Aesthetic UI + Web Audio API + Omnitone FOARenderer + 3D Head Visualizer
  */
 
@@ -7,49 +7,9 @@
 // 1. EXTENSIBLE PRESET FOA CATALOG
 // To add more scenes in the future, append entries to PRESET_SCENES below.
 // ============================================================================
-const PRESET_SCENES = {
-  sound_event: {
-    id: "sound_event",
-    name: "Sound Event",
-    dataset: "STARSS23 · dev-test-sony",
-    sampleRate: 24000,
-    duration: 6.0,
-    channelsLabel: "FOA · 4CH",
-    // Currently all three comparison streams use the directory audio file for UI evaluation.
-    // Replace individual paths when separate Original / MetaFOA / Baseline files are added.
-    streams: {
-      original: "audio/field-rvq-b05-s05-stereo.wav",
-      reconstructed: "audio/field-rvq-b05-s05-stereo.wav",
-      baseline: "audio/field-rvq-b05-s05-stereo.wav",
-    },
-  },
-  speech: {
-    id: "speech",
-    name: "Speech",
-    dataset: "Upcoming",
-    sampleRate: 24000,
-    duration: 6.0,
-    channelsLabel: "FOA · 4CH",
-    streams: {
-      original: "audio/field-rvq-b05-s05-stereo.wav",
-      reconstructed: "audio/field-rvq-b05-s05-stereo.wav",
-      baseline: "audio/field-rvq-b05-s05-stereo.wav",
-    },
-  },
-  music: {
-    id: "music",
-    name: "Music",
-    dataset: "Upcoming",
-    sampleRate: 24000,
-    duration: 6.0,
-    channelsLabel: "FOA · 4CH",
-    streams: {
-      original: "audio/field-rvq-b05-s05-stereo.wav",
-      reconstructed: "audio/field-rvq-b05-s05-stereo.wav",
-      baseline: "audio/field-rvq-b05-s05-stereo.wav",
-    },
-  },
-};
+const PRESET_SCENES = window.METAFOA_SCENES;
+const STREAM_KEYS = ["original", "reconstructed", "reconstructed_dac", "baseline"];
+if (!PRESET_SCENES?.sound_event) throw new Error("Audio scene catalog is unavailable.");
 
 // ============================================================================
 // 2. APPLICATION STATE
@@ -67,7 +27,7 @@ const state = {
   isMuted: false,
   volume: 0.9,
   currentTime: 0,
-  duration: 6.0,
+  duration: PRESET_SCENES.sound_event.duration,
   gyroEnabled: false,
   omnitoneReady: false,
   waveformPeaks: [],
@@ -96,6 +56,8 @@ const dom = {
   outputModeButtons: document.querySelectorAll("[data-output-mode]"),
   abcCards: document.querySelectorAll(".abc-card"),
   abcReconstructedDesc: document.getElementById("abcReconstructedDesc"),
+  sceneDetails: document.getElementById("sceneDetails"),
+  playbackStatus: document.getElementById("playbackStatus"),
 
   playButton: document.getElementById("playButton"),
   playButtonLabel: document.getElementById("playButtonLabel"),
@@ -112,16 +74,6 @@ const dom = {
 // ============================================================================
 // 4. WEB AUDIO API + OMNITONE FOA & CUSTOM STEREO DECODER ENGINE
 // ============================================================================
-function base64ToArrayBuffer(b64) {
-  const binary = window.atob(b64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
 function extractPeaksFromBuffer(audioBuffer, numBins = 136) {
   const ch0 = audioBuffer.getChannelData(0);
   const ch1 = audioBuffer.numberOfChannels > 1 ? audioBuffer.getChannelData(1) : ch0;
@@ -154,6 +106,7 @@ class SpatialAudioEngine {
     this.foaBuffers = {
       original: null,
       reconstructed: null,
+      reconstructed_dac: null,
       baseline: null,
     };
 
@@ -179,12 +132,32 @@ class SpatialAudioEngine {
 
     this.freqData = new Uint8Array(64);
     this.initialized = false;
+    this.initPromise = null;
+    this.scene = null;
+    this.sceneGeneration = 0;
+    this.playGeneration = 0;
+    this.chunkCache = new Map();
+    this.pendingChunks = new Map();
+    this.scheduledChunks = new Set();
+    this.schedulerTimer = null;
+    this.isStarting = false;
   }
 
   async ensureContext() {
+    if (!this.initPromise) {
+      this.initPromise = this.initializeContext().catch((error) => {
+        this.initPromise = null;
+        throw error;
+      });
+    }
+    await this.initPromise;
+    if (this.ctx.state === "suspended") await this.ctx.resume();
+  }
+
+  async initializeContext() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioCtx();
+      this.ctx = new AudioCtx({ sampleRate: 24000 });
     }
     if (this.ctx.state === "suspended") {
       await this.ctx.resume();
@@ -203,10 +176,13 @@ class SpatialAudioEngine {
     this.analyser.connect(this.ctx.destination);
     this.freqData = new Uint8Array(this.analyser.frequencyBinCount);
 
-    // Per-stream gain nodes for seamless ABC switching
-    ["original", "reconstructed", "baseline"].forEach((key) => {
+    // Per-stream gain nodes for seamless four-stream switching
+    STREAM_KEYS.forEach((key) => {
       const g = this.ctx.createGain();
       g.gain.value = key === state.activeStream ? 1.0 : 0.0;
+      g.channelCount = 4;
+      g.channelCountMode = "explicit";
+      g.channelInterpretation = "discrete";
       this.streamGains[key] = g;
     });
 
@@ -303,71 +279,90 @@ class SpatialAudioEngine {
   }
 
   async fetchAndDecodeArrayBuffer(url) {
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.arrayBuffer();
-    } catch (_) {
-      // Automatic fallback when opened directly via file:// protocol
-      if (window.__DEFAULT_FOA_WAV_BASE64__) {
-        return base64ToArrayBuffer(window.__DEFAULT_FOA_WAV_BASE64__);
-      }
-      throw new Error("Unable to load audio buffer.");
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Audio download failed (${response.status}).`);
+    return response.arrayBuffer();
+  }
+
+  applySceneMetadata(scene) {
+    state.duration = scene.duration;
+    dom.timelineSlider.max = scene.duration;
+    dom.durationLabel.textContent = formatTime(scene.duration);
+    dom.specDuration.textContent = `${scene.duration.toFixed(1)} s`;
+    dom.specSampleRate.textContent = `${scene.sampleRate.toLocaleString()} Hz`;
+    dom.specSceneName.textContent = scene.name;
+    dom.sourceFormatBadge.textContent = "FOA · 4CH ACN/SN3D";
+    dom.sceneDetails.textContent = `${scene.dataset.split(" · ")[0]} · Full recording`;
+    state.waveformPeaks = scene.peaks;
+    drawWaveform();
+  }
+
+  showStatus(text = "") {
+    dom.playbackStatus.textContent = text;
+    dom.playbackStatus.hidden = !text;
+  }
+
+  fail(error) {
+    this.stopSources();
+    state.isPlaying = false;
+    this.showStatus(`${error.message} Please try again.`);
+    updateTransportUI();
+    this.refreshEngineStatusText();
+  }
+
+  async loadChunk(scene, index) {
+    const key = `${scene.id}:${index}`;
+    if (this.chunkCache.has(key)) {
+      const buffers = this.chunkCache.get(key);
+      this.chunkCache.delete(key);
+      this.chunkCache.set(key, buffers);
+      return buffers;
     }
+    if (this.pendingChunks.has(key)) return this.pendingChunks.get(key);
+    const task = (async () => {
+      const chunk = scene.chunks[index];
+      const entries = await Promise.all(STREAM_KEYS.map(async (stream) => {
+        const data = await this.fetchAndDecodeArrayBuffer(chunk.streams[stream]);
+        const decoded = await this.ctx.decodeAudioData(data);
+        const expectedFrames = Math.round(chunk.samples * this.ctx.sampleRate / scene.sampleRate);
+        if (decoded.numberOfChannels !== 4 || decoded.length !== expectedFrames) {
+          throw new Error("Audio channel count or segment length does not match the scene.");
+        }
+        return [stream, decoded];
+      }));
+      const buffers = Object.fromEntries(entries);
+      if (this.scene === scene) {
+        this.chunkCache.set(key, buffers);
+        // Complete recordings are streamed with a bounded, three-chunk cache.
+        while (this.chunkCache.size > 3) this.chunkCache.delete(this.chunkCache.keys().next().value);
+      }
+      return buffers;
+    })();
+    this.pendingChunks.set(key, task);
+    try { return await task; }
+    finally { this.pendingChunks.delete(key); }
   }
 
   async loadSceneBuffers(scene) {
+    const generation = ++this.sceneGeneration;
+    this.stopSources();
+    state.isPlaying = false;
+    this.pauseOffset = 0;
+    state.currentTime = 0;
+    dom.currentTimeLabel.textContent = formatTime(0);
+    dom.timelineSlider.value = 0;
+    this.scene = scene;
+    this.chunkCache.clear();
+    this.applySceneMetadata(scene);
+    this.showStatus(`Loading ${scene.name.toLowerCase()}…`);
+    updateTransportUI();
     await this.ensureContext();
-    const keys = ["original", "reconstructed", "baseline"];
-
-    // If all 3 point to the same URL, decode once and share
-    const uniqueUrls = new Set(keys.map((k) => scene.streams[k]));
-    if (uniqueUrls.size === 1) {
-      const rawAb = await this.fetchAndDecodeArrayBuffer(scene.streams.reconstructed);
-      const decoded = await this.ctx.decodeAudioData(rawAb.slice(0));
-      const foaBuf = this.toFourChannelFOABuffer(decoded);
-
-      keys.forEach((k) => {
-        this.foaBuffers[k] = foaBuf;
-      });
-
-      this.applyBufferMetadata(decoded);
-      return;
-    }
-
-    for (const key of keys) {
-      const rawAb = await this.fetchAndDecodeArrayBuffer(scene.streams[key]);
-      const decoded = await this.ctx.decodeAudioData(rawAb.slice(0));
-      this.foaBuffers[key] = this.toFourChannelFOABuffer(decoded);
-      if (key === "reconstructed") {
-        this.applyBufferMetadata(decoded);
-      }
-    }
-  }
-
-  async loadCustomArrayBuffer(arrayBuffer) {
-    await this.ensureContext();
-    const decoded = await this.ctx.decodeAudioData(arrayBuffer.slice(0));
-    const foaBuf = this.toFourChannelFOABuffer(decoded);
-    ["original", "reconstructed", "baseline"].forEach((k) => {
-      this.foaBuffers[k] = foaBuf;
-    });
-    this.applyBufferMetadata(decoded);
-  }
-
-  applyBufferMetadata(decodedBuffer) {
-    state.duration = decodedBuffer.duration;
-    dom.timelineSlider.max = decodedBuffer.duration.toFixed(2);
-    dom.durationLabel.textContent = formatTime(decodedBuffer.duration);
-    dom.specDuration.textContent = `${decodedBuffer.duration.toFixed(1)} s`;
-    dom.specSampleRate.textContent = `${decodedBuffer.sampleRate.toLocaleString()} Hz`;
-    dom.sourceFormatBadge.textContent =
-      decodedBuffer.numberOfChannels >= 4
-        ? "FOA · 4CH ACN/SN3D"
-        : `FOA UPMIX · ${decodedBuffer.numberOfChannels}CH WAV`;
-
-    state.waveformPeaks = extractPeaksFromBuffer(decodedBuffer, 136);
-    drawWaveform();
+    const buffers = await this.loadChunk(scene, 0);
+    if (generation !== this.sceneGeneration) return false;
+    this.foaBuffers = buffers;
+    this.showStatus();
+    this.refreshEngineStatusText();
+    return true;
   }
 
   async setupBinauralDecoder() {
@@ -516,52 +511,101 @@ class SpatialAudioEngine {
     }
   }
 
-  startSourcesAt(offsetSeconds) {
+  async startSourcesAt(offsetSeconds) {
     this.stopSources();
-    const offset = Math.max(0, Math.min(state.duration - 0.01, offsetSeconds));
+    this.isStarting = true;
+    const generation = this.playGeneration;
+    const scene = this.scene;
+    const sceneGeneration = this.sceneGeneration;
+    const offset = Math.max(0, Math.min(scene.duration - 1 / scene.sampleRate, offsetSeconds));
     this.pauseOffset = offset;
-    this.startTimestamp = this.ctx.currentTime - offset;
+    state.isPlaying = false;
+    this.showStatus("Loading audio…");
+    updateTransportUI();
+    const index = Math.min(scene.chunks.length - 1, Math.floor(offset * scene.sampleRate / scene.segmentSamples));
+    const buffers = await this.loadChunk(scene, index);
+    if (generation !== this.playGeneration || sceneGeneration !== this.sceneGeneration) return;
+    this.isStarting = false;
+    this.foaBuffers = buffers;
+    this.playStartTime = this.ctx.currentTime + 0.04;
+    this.startTimestamp = this.playStartTime - offset;
+    state.isPlaying = true;
+    this.showStatus();
+    this.scheduleAhead(generation);
+    this.schedulerTimer = setInterval(() => this.scheduleAhead(generation), 100);
+    updateTransportUI();
+    this.refreshEngineStatusText();
+  }
 
-    ["original", "reconstructed", "baseline"].forEach((key) => {
-      const buf = this.foaBuffers[key];
-      if (!buf) return;
-      const src = this.ctx.createBufferSource();
-      src.buffer = buf;
-      src.loop = state.isLooping;
-      src.connect(this.streamGains[key]);
-
-      if (key === "reconstructed") {
-        src.onended = () => {
-          if (state.isPlaying && !state.isLooping) {
-            const elapsed = this.ctx.currentTime - this.startTimestamp;
-            if (elapsed >= state.duration - 0.05) {
-              state.isPlaying = false;
-              this.pauseOffset = 0;
-              state.currentTime = 0;
-              dom.timelineSlider.value = 0;
-              dom.currentTimeLabel.textContent = formatTime(0);
-              updateTransportUI();
-              this.refreshEngineStatusText();
-              drawWaveform();
-            }
-          }
-        };
-      }
-
-      src.start(0, offset);
-      this.sourceNodes[key] = src;
-    });
+  scheduleAhead(generation) {
+    if (!state.isPlaying || generation !== this.playGeneration) return;
+    const scene = this.scene;
+    const elapsed = Math.max(0, this.ctx.currentTime - this.startTimestamp);
+    if (!state.isLooping && elapsed >= scene.duration) {
+      this.stopSources();
+      state.isPlaying = false;
+      this.pauseOffset = 0;
+      state.currentTime = 0;
+      dom.timelineSlider.value = 0;
+      dom.currentTimeLabel.textContent = formatTime(0);
+      updateTransportUI();
+      this.refreshEngineStatusText();
+      drawWaveform();
+      return;
+    }
+    const cycle = Math.floor(elapsed / scene.duration);
+    const localTime = elapsed % scene.duration;
+    const index = Math.min(scene.chunks.length - 1, Math.floor(localTime * scene.sampleRate / scene.segmentSamples));
+    const upcoming = [[cycle, index]];
+    if (index + 1 < scene.chunks.length) upcoming.push([cycle, index + 1]);
+    else if (state.isLooping) upcoming.push([cycle + 1, 0]);
+    for (const [loop, chunkIndex] of upcoming) {
+      const scheduledKey = `${loop}:${chunkIndex}`;
+      if (this.scheduledChunks.has(scheduledKey)) continue;
+      this.loadChunk(scene, chunkIndex).then((buffers) => {
+        if (generation !== this.playGeneration || !state.isPlaying || this.scene !== scene || this.scheduledChunks.has(scheduledKey)) return;
+        const chunk = scene.chunks[chunkIndex];
+        const plannedStart = this.startTimestamp + loop * scene.duration + chunk.startSample / scene.sampleRate;
+        const end = plannedStart + chunk.samples / scene.sampleRate;
+        const start = Math.max(plannedStart, this.playStartTime, this.ctx.currentTime + 0.005);
+        if (start >= end) return;
+        const offset = start - plannedStart;
+        this.scheduledChunks.add(scheduledKey);
+        this.foaBuffers = buffers;
+        // All four versions share one context time, offset and duration.
+        STREAM_KEYS.forEach((stream) => {
+          const source = this.ctx.createBufferSource();
+          source.buffer = buffers[stream];
+          source.channelInterpretation = "discrete";
+          source.connect(this.streamGains[stream]);
+          const key = `${scheduledKey}:${stream}`;
+          this.sourceNodes[key] = source;
+          source.onended = () => {
+            source.disconnect();
+            delete this.sourceNodes[key];
+          };
+          source.start(start, offset, end - start);
+        });
+      }).catch((error) => {
+        if (generation === this.playGeneration) this.fail(error);
+      });
+    }
   }
 
   stopSources() {
-    Object.values(this.sourceNodes).forEach((src) => {
+    ++this.playGeneration;
+    this.isStarting = false;
+    clearInterval(this.schedulerTimer);
+    this.schedulerTimer = null;
+    Object.values(this.sourceNodes).forEach((source) => {
       try {
-        src.onended = null;
-        src.stop();
-        src.disconnect();
+        source.onended = null;
+        source.stop();
+        source.disconnect();
       } catch (_) {}
     });
     this.sourceNodes = {};
+    this.scheduledChunks.clear();
   }
 
   switchABCStream(streamKey) {
@@ -604,39 +648,37 @@ class SpatialAudioEngine {
   }
 
   async togglePlay() {
-    await this.ensureContext();
-    if (!this.foaBuffers.reconstructed) {
-      await this.loadSceneBuffers(PRESET_SCENES[state.currentSceneId]);
-    }
-
-    if (!state.isPlaying) {
-      this.startSourcesAt(this.pauseOffset);
-      state.isPlaying = true;
-    } else {
+    if (state.isPlaying) {
       this.pauseOffset = this.getCurrentPlaybackTime();
       this.stopSources();
       state.isPlaying = false;
+      this.refreshEngineStatusText();
+      updateTransportUI();
+      return;
     }
-    this.refreshEngineStatusText();
-    updateTransportUI();
+    dom.playButton.disabled = true;
+    try {
+      await this.ensureContext();
+      if (!this.scene) {
+        const loaded = await this.loadSceneBuffers(PRESET_SCENES[state.currentSceneId]);
+        if (!loaded) return;
+      }
+      await this.startSourcesAt(this.pauseOffset);
+    } catch (error) { this.fail(error); }
+    finally { dom.playButton.disabled = false; }
   }
 
   getCurrentPlaybackTime() {
     if (!state.isPlaying || !this.ctx) return this.pauseOffset;
-    const elapsed = this.ctx.currentTime - this.startTimestamp;
-    if (state.isLooping && state.duration > 0) {
-      return elapsed % state.duration;
-    }
-    return Math.min(state.duration, elapsed);
+    const elapsed = Math.max(0, this.ctx.currentTime - this.startTimestamp);
+    return state.isLooping ? elapsed % state.duration : Math.min(state.duration, elapsed);
   }
 
   seekTo(seconds) {
-    const clamped = Math.max(0, Math.min(state.duration, seconds));
+    const clamped = Math.max(0, Math.min(state.duration - 1 / 24000, seconds));
     this.pauseOffset = clamped;
     state.currentTime = clamped;
-    if (state.isPlaying) {
-      this.startSourcesAt(clamped);
-    }
+    if (state.isPlaying || this.isStarting) this.startSourcesAt(clamped).catch((error) => this.fail(error));
     dom.currentTimeLabel.textContent = formatTime(clamped);
     drawWaveform();
   }
@@ -656,13 +698,9 @@ class SpatialAudioEngine {
   }
 
   setLoop(loop) {
-    if (state.isPlaying) {
-      this.pauseOffset = this.getCurrentPlaybackTime();
-    }
+    const offset = this.getCurrentPlaybackTime();
     state.isLooping = loop;
-    Object.values(this.sourceNodes).forEach((src) => {
-      src.loop = loop;
-    });
+    if (state.isPlaying) this.startSourcesAt(offset).catch((error) => this.fail(error));
   }
 
   getAudioEnergy() {
@@ -1114,41 +1152,7 @@ function renderSpatialScene() {
 // ============================================================================
 // 6. WAVEFORM SCRUBBER RENDERER (BLOCK 04)
 // ============================================================================
-function generateDefaultPeaks(count = 136) {
-  if (window.__DEFAULT_FOA_WAV_BASE64__) {
-    try {
-      const ab = base64ToArrayBuffer(window.__DEFAULT_FOA_WAV_BASE64__);
-      const view = new DataView(ab);
-      const dataOffset = 44;
-      const totalSamples = Math.floor((ab.byteLength - dataOffset) / 2);
-      const step = Math.max(1, Math.floor(totalSamples / count));
-      const raw = [];
-      let maxVal = 1;
-      for (let i = 0; i < count; i++) {
-        const start = i * step;
-        const end = Math.min(totalSamples, start + step);
-        let localMax = 0;
-        for (let j = start; j < end; j += 4) {
-          const sample = Math.abs(view.getInt16(dataOffset + j * 2, true));
-          if (sample > localMax) localMax = sample;
-        }
-        raw.push(localMax);
-        if (localMax > maxVal) maxVal = localMax;
-      }
-      return raw.map((v) => Math.max(0.08, Math.min(1.0, v / maxVal)));
-    } catch (_) {}
-  }
-
-  const peaks = [];
-  for (let i = 0; i < count; i++) {
-    const env = Math.sin((i / count) * Math.PI);
-    const detail = Math.abs(Math.sin(i * 0.43) * Math.cos(i * 0.19));
-    peaks.push(0.18 + 0.75 * env * detail);
-  }
-  return peaks;
-}
-
-state.waveformPeaks = generateDefaultPeaks(136);
+state.waveformPeaks = PRESET_SCENES.sound_event.peaks;
 
 function drawWaveform() {
   const canvas = dom.waveformCanvas;
@@ -1322,22 +1326,23 @@ function setupMobileDeviceOrientation() {
 function setupSourceBlockEvents() {
   dom.sceneTabs.forEach((tab) => {
     tab.addEventListener("click", async () => {
-      if (tab.disabled) return;
       const id = tab.dataset.scene;
       const scene = PRESET_SCENES[id];
       if (!scene || id === state.currentSceneId) return;
-
-      dom.sceneTabs.forEach((t) => {
-        const active = t.dataset.scene === id;
-        t.classList.toggle("is-active", active);
-        t.setAttribute("aria-selected", active ? "true" : "false");
-      });
-
-      state.currentSceneId = id;
-      dom.specSceneName.textContent = scene.name;
       const wasPlaying = state.isPlaying;
-      if (wasPlaying) await audioEngine.togglePlay();
-      await audioEngine.loadSceneBuffers(scene);
+      state.currentSceneId = id;
+      dom.sceneTabs.forEach((button) => {
+        const active = button.dataset.scene === id;
+        button.classList.toggle("is-active", active);
+        button.setAttribute("aria-checked", String(active));
+        button.querySelector(".scene-tab-dot").style.visibility = active ? "visible" : "hidden";
+      });
+      try {
+        const loaded = await audioEngine.loadSceneBuffers(scene);
+        if (loaded && wasPlaying) await audioEngine.startSourcesAt(0);
+      } catch (error) {
+        if (state.currentSceneId === id) audioEngine.fail(error);
+      }
     });
   });
 }
@@ -1382,14 +1387,16 @@ function setupBlock03And04Events() {
     });
   });
 
-  // Global keyboard shortcuts (1 / 2 / 3 or A / B / C) for effortless stream comparison
+  // Global keyboard shortcuts (1 / 2 / 3 / 4 or A / B / C / D) for effortless stream comparison
   window.addEventListener("keydown", (e) => {
-    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    if (e.target && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
     if (e.key === "1" || e.key === "a" || e.key === "A") {
       selectABCCard("original");
     } else if (e.key === "2" || e.key === "b" || e.key === "B") {
       selectABCCard("reconstructed");
     } else if (e.key === "3" || e.key === "c" || e.key === "C") {
+      selectABCCard("reconstructed_dac");
+    } else if (e.key === "4" || e.key === "d" || e.key === "D") {
       selectABCCard("baseline");
     }
   });
@@ -1485,6 +1492,7 @@ function init() {
     renderSpatialScene();
   });
 
+  audioEngine.applySceneMetadata(PRESET_SCENES.sound_event);
   drawWaveform();
   requestAnimationFrame(tick);
 }

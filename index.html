@@ -79,7 +79,7 @@
           <span id="activeDecoderLabel">Binaural</span>
           <span id="specSceneName">Sound Event</span>
           <span id="specSampleRate">24,000 Hz</span>
-          <span id="specDuration">6.0 s</span>
+          <span id="specDuration">44.7 s</span>
         </div>
       </header>
 
@@ -103,26 +103,24 @@
 
             <button
               type="button"
-              class="scene-tab is-disabled"
+              class="scene-tab"
               data-scene="speech"
               role="radio"
               aria-checked="false"
-              disabled
             >
+              <span class="scene-tab-dot" style="visibility: hidden" aria-hidden="true"></span>
               <span class="scene-tab-name">Speech</span>
-              <span class="scene-tab-upcoming">Upcoming</span>
             </button>
 
             <button
               type="button"
-              class="scene-tab is-disabled"
+              class="scene-tab"
               data-scene="music"
               role="radio"
               aria-checked="false"
-              disabled
             >
+              <span class="scene-tab-dot" style="visibility: hidden" aria-hidden="true"></span>
               <span class="scene-tab-name">Music</span>
-              <span class="scene-tab-upcoming">Upcoming</span>
             </button>
           </div>
         </div>
@@ -220,7 +218,7 @@
               <span class="section-label">04 / Evaluation</span>
               <h2 id="comparison-heading" class="column-title">Audio Comparison</h2>
             </div>
-            <span class="column-note">Synchronized playback &amp; head angle</span>
+            <span class="column-note"><span id="sceneDetails">STARSS23 · Full recording</span></span>
           </div>
 
           <!-- Minimalist Transport & Waveform -->
@@ -249,7 +247,7 @@
                     id="timelineSlider"
                     type="range"
                     min="0"
-                    max="6"
+                    max="44.7"
                     step="0.01"
                     value="0"
                     aria-label="Audio timeline"
@@ -257,7 +255,7 @@
                 </div>
                 <div class="scrubber-times">
                   <span id="currentTimeLabel">0:00.0</span>
-                  <span id="durationLabel">0:06.0</span>
+                  <span id="durationLabel">0:44.7</span>
                 </div>
               </div>
             </div>
@@ -314,7 +312,7 @@
                   <span class="stream-name">Original FOA</span>
                   <span class="stream-spec">Reference</span>
                 </span>
-                <span class="stream-desc">Uncompressed 4-channel First-Order Ambisonics</span>
+                <span class="stream-desc">Original sound field · 4-channel ACN/SN3D</span>
               </span>
             </button>
 
@@ -329,16 +327,34 @@
               <span class="radio-mark" aria-hidden="true"></span>
               <span class="stream-body">
                 <span class="stream-row-top">
-                  <span class="stream-name">MetaFOA</span>
+                  <span class="stream-name">MetaFOA · EnCodec</span>
                   <span class="stream-spec">Proposed · 750 bit/s</span>
                 </span>
                 <span class="stream-desc" id="abcReconstructedDesc">
-                  Proposed MetaFOA reconstruction
+                  EnCodec 6 kbps + MetaFOA spatial metadata
                 </span>
               </span>
             </button>
 
-            <!-- 3: Baseline Codec (DirAC [1]) -->
+            <!-- 3: MetaFOA with the DAC W carrier -->
+            <button
+              type="button"
+              class="abc-card"
+              data-stream="reconstructed_dac"
+              role="radio"
+              aria-checked="false"
+            >
+              <span class="radio-mark" aria-hidden="true"></span>
+              <span class="stream-body">
+                <span class="stream-row-top">
+                  <span class="stream-name">MetaFOA · DAC</span>
+                  <span class="stream-spec">Proposed · 750 bit/s</span>
+                </span>
+                <span class="stream-desc">DAC 6 kbps + MetaFOA spatial metadata</span>
+              </span>
+            </button>
+
+            <!-- 4: Baseline Codec (DirAC [1]) -->
             <button
               type="button"
               class="abc-card"
@@ -349,18 +365,19 @@
               <span class="radio-mark" aria-hidden="true"></span>
               <span class="stream-body">
                 <span class="stream-row-top">
-                  <span class="stream-name">Baseline Codec (DirAC)</span>
+                  <span class="stream-name">DirAC · EnCodec</span>
                   <span class="stream-spec">Baseline · 750 bit/s</span>
                 </span>
                 <span class="stream-desc">
-                  Conventional DirAC metadata coding [1]
+                  EnCodec 6 kbps + paper-aligned DirAC [1]
                 </span>
               </span>
             </button>
           </div>
 
+          <p id="playbackStatus" class="comparison-footnote" role="status" aria-live="polite" hidden></p>
           <p class="comparison-footnote">
-            Switch versions anytime while rotating the sound field (or press keys <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>).
+            Switch versions while rotating the sound field (keys <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>). 750 bit/s refers to spatial metadata; W uses a nominal 6 kbps codec.
           </p>
         </section>
       </main>
@@ -768,6 +785,29 @@
             </div>
 
             <div class="ref-group">
+              <h3 class="ref-group-title">Dataset Audio &amp; Transformations</h3>
+              <ul class="tool-ref-list">
+                <li>
+                  <strong>STARSS23 — Sound Event</strong> — Archontis Politis, Kazuki Shimada and the Sony–Tampere University team (2023). Full recording <span class="math-inline">fold4_room23_mix002</span>; MIT License. Four-channel FOA at 24 kHz, newly compressed for this demonstration.
+                  <a href="https://zenodo.org/records/7880637" target="_blank" rel="noopener noreferrer">Dataset &amp; attribution ↗</a>
+                </li>
+                <li>
+                  <strong>Open Yap 1K sample — Speech</strong> — The Agentic Data Company (2026), v1.0; CC BY 4.0 public sample. Complete conversation <span class="math-inline">conv_04692967d40e</span>, spatialized into FOA with speakers at ±30°, 0.6 m, retaining their shared timeline. This is a derived free-field scene.
+                  <a href="https://huggingface.co/datasets/TheAgenticDataCompany/open-yap-1k" target="_blank" rel="noopener noreferrer">Dataset ↗</a>
+                  <a href="audio/licenses/Open-Yap-CC-BY-4.0.txt" target="_blank" rel="noopener noreferrer">License &amp; speaker request ↗</a>
+                </li>
+                <li>
+                  <strong>3D-MARCo — Music</strong> — Hyunkook Lee and Dale Johnson, University of Huddersfield (2019); quartet performed by members of the Up North Session Orchestra. Dvořák, String Quartet in G major, Op. 106; complete supplied excerpt. AMBEO A-format converted with Sennheiser's correction filter to ambiX, then resampled from 96 to 24 kHz. Zenodo lists CC BY 3.0; the accompanying white paper specifies CC BY-NC 3.0. Used here for noncommercial research demonstration with attribution to both sources.
+                  <a href="https://zenodo.org/records/3477602" target="_blank" rel="noopener noreferrer">Dataset &amp; documentation ↗</a>
+                </li>
+                <li>
+                  Audio remains credited to its respective creators. All versions of each scene share one playback gain and are delivered as four-channel 24-bit FLAC after decoding. The baseline uses the paper's Fuchs-inspired CBR reproduction with 40 ms updates; it is a research reproduction, not an official implementation. Complete processing records and license notices are available in the
+                  <a href="audio/README.md" target="_blank" rel="noopener noreferrer">audio notes ↗</a>.
+                </li>
+              </ul>
+            </div>
+
+            <div class="ref-group">
               <h3 class="ref-group-title">Interactive Spatial Audio Rendering &amp; Open-Source Tools</h3>
               <ul class="tool-ref-list">
                 <li>
@@ -788,7 +828,7 @@
       </footer>
     </div>
 
-    <script src="audio/default-foa-data.js"></script>
+    <script src="audio/scenes.js"></script>
     <script src="script.js"></script>
   </body>
 </html>
