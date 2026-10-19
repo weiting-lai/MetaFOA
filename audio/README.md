@@ -1,7 +1,8 @@
 # Listening audio: sources, transformations and licenses
 
 The three tabs play complete supplied recordings. Each has four distinct versions:
-Original FOA, MetaFOA + EnCodec, MetaFOA + DAC, and DirAC + EnCodec.
+Original FOA, Proposed MetaFOA with EnCodec, Proposed MetaFOA with DAC, and Baseline.
+Each compressed option has a nominal total bitrate of **6.75 kbps**.
 All FOA is 24 kHz, ACN/SN3D, ordered **W, Y, Z, X**.
 
 | Scene | Source | Duration | Source credit and terms |
@@ -38,7 +39,7 @@ create identifiable voice clones; the full request travels with the license file
   distance 0.6 m. The common propagation delay is retained. This is a synthetic
   spatialization of conversational audio, not a native spatial recording.
   Existing independent 20-second MetaFOA/carrier processing boundaries are
-  retained for the DirAC baseline too.
+  retained for the comparison baseline too.
 - Sound Event: use the full, different STARSS23 recording listed above, already
   four-channel 24 kHz FOA. Newly encode MetaFOA spatial metadata at 750 bit/s,
   and separately encode/decode W with the pretrained EnCodec 24 kHz 6 kbps
@@ -53,31 +54,14 @@ create identifiable voice clones; the full request travels with the license file
   is 1 for Sound Event/Music and 0.98989903996 for Speech. No version is
   individually loudness-normalized for the listening comparison.
 
-## Paper-aligned DirAC baseline
+## Comparison baseline and related literature
 
-This is the **Fuchs-inspired CBR reproduction used for Table 1**, not the
-unrelated fixed-DOA or neural-allocation experiments in N-DirAC. It calls
-`n_dirac.analysis.analyze_foa`,
-`n_dirac.baselines.manual.roundtrip_fuchs_paper40_from_analysis`, and the fixed
-`n_dirac.renderer_adapter.render_dirac` synthesis path. It uses five paper
-parameter bands, three-bit nonuniform diffuseness, IVAS spherical DOA grids,
-diffuseness-prioritized CBR allocation and shared 40 ms updates. It is a research
-reproduction, not an official Fuchs/IVAS implementation.
+The **Baseline** option provides a compressed FOA reconstruction at a nominal
+total bitrate of **6.75 kbps**. All listening versions use the same source,
+timeline and scene-wide playback gain. The paper provides the experimental
+methodology and quantitative comparisons in Table 1 and Figure 2.
 
-The baseline receives **the exact same decoded EnCodec W samples** as the
-EnCodec MetaFOA version. No additional time shift or gain is applied to W.
-Metadata is actually packed, read back and decoded before synthesis. Its
-post-export W channel is also exactly equal to EnCodec MetaFOA's W.
-
-Before generating these demos, all **1,000 frozen SpatialVCTK clips** were
-re-run at 750 bit/s with their historical decoded W carriers. The result is
-29.20655085° equal-clip angular error and 0.00033579555 global diffuseness MAE,
-reproducing the paper's 29.21° / 0.00 rounded values. Every packet bit count,
-allocation histogram and W channel matched. This validation covers that column
-and rate, not a newly recomputed full multi-dataset paper table. See
-[machine-readable validation](dirac-validation.json).
-
-Baseline reference: G. Fuchs, F. Ghido, D. Weckbecker and O. Thiergart,
+Related reference: G. Fuchs, F. Ghido, D. Weckbecker and O. Thiergart,
 “A first-order DirAC-based parametric ambisonic coder for immersive
 communications,” ICASSP 2025, pp. 12937–12941. EnCodec and DAC retain their
 respective upstream authorship and licenses:
@@ -97,8 +81,7 @@ and durations. The player preloads upcoming chunks, retaining at most three
 decoded groups, supports seeking across the full recording and loops the full
 scene. Missing or corrupt audio fails visibly instead of substituting another
 stream. `scenes.js` contains exact sample counts and paths; [provenance.json](provenance.json)
-contains source/output fingerprints, all chunk hashes, gains and baseline
-packet accounting.
+contains source/output fingerprints, all chunk hashes and processing records.
 
 **750 bit/s is spatial metadata, not the delivery FLAC bitrate.** The W codec's
 6 kbps is its nominal setting. Finite-clip headers and DAC's default valid-

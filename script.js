@@ -1175,22 +1175,38 @@ function drawWaveform() {
   ctx.clearRect(0, 0, w, h);
 
   const peaks = state.waveformPeaks;
-  const count = peaks.length;
+  if (!peaks.length || w <= 0) {
+    ctx.restore();
+    return;
+  }
   const gap = 2;
-  const barW = Math.max(1, (w - gap * (count - 1)) / count);
-  const progressRatio = state.duration > 0 ? state.currentTime / state.duration : 0;
+  // Pool peaks to the available width so bars never run past the canvas.
+  const count = Math.min(peaks.length, Math.max(1, Math.floor((w + gap) / (1 + gap))));
+  const barW = (w - gap * (count - 1)) / count;
+  const progressRatio = Math.max(0, Math.min(1, state.duration > 0 ? state.currentTime / state.duration : 0));
+  const playheadX = progressRatio * Math.max(0, w - 1);
+  const bars = [];
 
   for (let i = 0; i < count; i++) {
     const x = i * (barW + gap);
-    const barRatio = i / count;
-    const barH = Math.max(2, peaks[i] * (h * 0.72));
+    const first = Math.floor(i * peaks.length / count);
+    const last = Math.max(first + 1, Math.floor((i + 1) * peaks.length / count));
+    const peak = Math.max(...peaks.slice(first, last));
+    const barH = Math.max(2, peak * (h * 0.72));
     const y = (h - barH) * 0.5;
-
-    ctx.fillStyle = barRatio <= progressRatio ? "#333333" : "#D5D1C7";
+    bars.push({ x, y, height: barH });
+    ctx.fillStyle = "#D5D1C7";
     ctx.fillRect(x, y, barW, barH);
   }
 
-  const playheadX = Math.min(w - 1, Math.max(0, progressRatio * w));
+  // The played color and pointer share the exact same boundary, even mid-bar.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, playheadX, h);
+  ctx.clip();
+  ctx.fillStyle = "#333333";
+  for (const bar of bars) ctx.fillRect(bar.x, bar.y, barW, bar.height);
+  ctx.restore();
   ctx.fillStyle = "#333333";
   ctx.fillRect(playheadX, 0, 1, h);
 
@@ -1295,6 +1311,7 @@ function setupMobileDeviceOrientation() {
     if (state.gyroEnabled) {
       state.gyroEnabled = false;
       dom.gyroButton.classList.remove("is-active");
+      dom.gyroButton.setAttribute("aria-pressed", "false");
       dom.gyroButton.textContent = "Motion Sensor";
       window.removeEventListener("deviceorientation", handleOrientation);
       return;
@@ -1312,12 +1329,14 @@ function setupMobileDeviceOrientation() {
         }
       } catch (err) {
         console.warn("DeviceOrientation permission request failed:", err);
+        return;
       }
     }
 
     baselineAlpha = null;
     state.gyroEnabled = true;
     dom.gyroButton.classList.add("is-active");
+    dom.gyroButton.setAttribute("aria-pressed", "true");
     dom.gyroButton.textContent = "Motion Active";
     window.addEventListener("deviceorientation", handleOrientation);
   });

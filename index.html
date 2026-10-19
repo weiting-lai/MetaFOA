@@ -196,7 +196,9 @@
                 id="gyroButton"
                 type="button"
                 class="text-action-btn"
-                title="Use mobile device motion sensors"
+                title="On supported phones and tablets, tap to enable device rotation"
+                aria-describedby="motionSensorHelp"
+                aria-pressed="false"
               >
                 Motion Sensor
               </button>
@@ -209,6 +211,9 @@
               </button>
             </div>
           </div>
+          <p id="motionSensorHelp" class="comparison-footnote">
+            On supported phones and tablets, tap Motion Sensor and rotate your device to change the listening direction. Allow sensor access if prompted.
+          </p>
         </section>
 
         <!-- RIGHT PANEL: 04 / AUDIO COMPARISON -->
@@ -327,11 +332,11 @@
               <span class="radio-mark" aria-hidden="true"></span>
               <span class="stream-body">
                 <span class="stream-row-top">
-                  <span class="stream-name">MetaFOA · EnCodec</span>
-                  <span class="stream-spec">Proposed · 750 bit/s</span>
+                  <span class="stream-name">Proposed MetaFOA</span>
+                  <span class="stream-spec">6.75 kbps</span>
                 </span>
                 <span class="stream-desc" id="abcReconstructedDesc">
-                  EnCodec 6 kbps + MetaFOA spatial metadata
+                  Spatial metadata 0.75 kbps + EnCodec 6 kbps
                 </span>
               </span>
             </button>
@@ -347,14 +352,14 @@
               <span class="radio-mark" aria-hidden="true"></span>
               <span class="stream-body">
                 <span class="stream-row-top">
-                  <span class="stream-name">MetaFOA · DAC</span>
-                  <span class="stream-spec">Proposed · 750 bit/s</span>
+                  <span class="stream-name">Proposed MetaFOA</span>
+                  <span class="stream-spec">6.75 kbps</span>
                 </span>
-                <span class="stream-desc">DAC 6 kbps + MetaFOA spatial metadata</span>
+                <span class="stream-desc">Spatial metadata 0.75 kbps + DAC 6 kbps</span>
               </span>
             </button>
 
-            <!-- 4: Baseline Codec (DirAC [1]) -->
+            <!-- 4: Comparison baseline -->
             <button
               type="button"
               class="abc-card"
@@ -365,11 +370,11 @@
               <span class="radio-mark" aria-hidden="true"></span>
               <span class="stream-body">
                 <span class="stream-row-top">
-                  <span class="stream-name">DirAC · EnCodec</span>
-                  <span class="stream-spec">Baseline · 750 bit/s</span>
+                  <span class="stream-name">Baseline</span>
+                  <span class="stream-spec">6.75 kbps</span>
                 </span>
                 <span class="stream-desc">
-                  EnCodec 6 kbps + paper-aligned DirAC [1]
+                  Compressed FOA reconstruction
                 </span>
               </span>
             </button>
@@ -377,7 +382,7 @@
 
           <p id="playbackStatus" class="comparison-footnote" role="status" aria-live="polite" hidden></p>
           <p class="comparison-footnote">
-            Switch versions while rotating the sound field (keys <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>). 750 bit/s refers to spatial metadata; W uses a nominal 6 kbps codec.
+            Switch versions while rotating the sound field (keys <kbd>1</kbd>, <kbd>2</kbd>, <kbd>3</kbd>, <kbd>4</kbd>). Bitrates shown are nominal totals for audio and spatial metadata.
           </p>
         </section>
       </main>
@@ -393,7 +398,7 @@
               Lightweight Spatial Audio Compression, Built to Pair with Any Monaural Codec
             </h2>
             <p class="editorial-lead">
-              Delivering 360° spatial audio at ultra-low bitrates does not require training a monolithic multi-channel neural network from scratch. By combining the physics-grounded <strong>Directional Audio Coding (DirAC)</strong> framework with a unified <strong>3-D Directivity Vector</strong> representation, MetaFOA captures a complete three-dimensional sound field using just <strong>750 bit/s</strong> of spatial metadata.
+              MetaFOA takes a lightweight <strong>parametric approach</strong> to 360° spatial audio. A unified <strong>3-D Directivity Vector</strong> combines direction and diffuseness in one representation, while cross-band quantization compresses the spatial metadata to just <strong>0.75 kbps</strong>. Pairing this compact representation with a pretrained monaural codec keeps the system modular, efficient, and easy to adapt.
             </p>
             <div class="feature-points">
               <div class="feature-item">
@@ -477,9 +482,9 @@
           </div>
           <div class="note-block">
             <span class="note-num">02</span>
-            <h3 class="feature-heading">Why Conventional DirAC Degrades at 750 bit/s</h3>
+            <h3 class="feature-heading">Predictable Bitrate, Flexible Quality</h3>
             <p class="feature-text">
-              Conventional DirAC [1] divides its bit budget across bands independently. At 750 bit/s, increasing from <span class="math-inline">B = 3</span> to <span class="math-inline">B = 5</span> bands starves each band down to just 3 bits (8 coarse directions), causing spatial distortion to rise instead of fall.
+              MetaFOA maintains a constant spatial metadata budget as the scene changes. The same quantizer scales from <strong>0.75 to 3.0 kbps</strong> by selecting more RVQ stages, offering a straightforward trade-off between transmission rate and reconstruction quality.
             </p>
           </div>
           <div class="note-block">
@@ -493,16 +498,16 @@
       </section>
 
       <!-- ================================================================
-           07 / QUANTITATIVE BENCHMARK (TABLE 1: PROPOSED VS BASELINE DIRAC)
+           07 / QUANTITATIVE BENCHMARK (TABLE 1)
            ================================================================ -->
       <section class="editorial-section" aria-labelledby="section-07-title">
         <div class="editorial-header-stack">
           <span class="section-label">07 / Quantitative Benchmark</span>
           <h2 id="section-07-title" class="editorial-title">
-            Objective Comparison Against Baseline DirAC Across Diverse Acoustic Environments
+            Reconstruction Quality Across Diverse Acoustic Environments
           </h2>
           <p class="editorial-lead editorial-lead-wide">
-            We evaluate FOA waveform and spatial reconstruction across three benchmarks—<strong>SpatialVCTK</strong> (anechoic spatial speech), <strong>STARSS23</strong> (real-world multi-source sound events), and <strong>MEIR</strong> (measured reverberant rooms)—pairing both Baseline DirAC [1] and MetaFOA with identical pretrained <strong>EnCodec</strong> and <strong>DAC</strong> monaural backbones (6 kbps). At the low spatial metadata budget of <strong>0.75 kbps (750 bit/s)</strong>, MetaFOA eliminates the severe angular breakdown seen in conventional per-band quantization and even outperforms Baseline DirAC operating at double the metadata bitrate (1.50 kbps) on reverberant recordings.
+            We evaluate FOA waveform and spatial reconstruction across three benchmarks—<strong>SpatialVCTK</strong> (anechoic spatial speech), <strong>STARSS23</strong> (real-world multi-source sound events), and <strong>MEIR</strong> (measured reverberant rooms). The results cover spectral fidelity, spatial accuracy, and speech content preservation at several operating points. With spatial metadata starting at <strong>0.75 kbps</strong>, MetaFOA supports fine frequency resolution and pairs flexibly with pretrained <strong>EnCodec</strong> or <strong>DAC</strong> monaural backbones.
           </p>
         </div>
 
@@ -772,11 +777,11 @@
           <div class="references-column">
             <div>
               <span class="section-label">09 / References &amp; Open-Source Credits</span>
-              <h2 class="column-title">Baseline Literature &amp; Web Rendering Stack</h2>
+              <h2 class="column-title">References &amp; Web Rendering Stack</h2>
             </div>
 
             <div class="ref-group">
-              <h3 class="ref-group-title">Baseline Codec Reference</h3>
+              <h3 class="ref-group-title">Related Literature</h3>
               <ol class="ref-list">
                 <li>
                   [1] G. Fuchs, F. Ghido, D. Weckbecker, and O. Thiergart, “A first-order DirAC-based parametric ambisonic coder for immersive communications,” in <em>Proc. IEEE Int. Conf. Acoust., Speech, Signal Process. (ICASSP)</em>, 2025, pp. 12937–12941.
@@ -801,7 +806,7 @@
                   <a href="https://zenodo.org/records/3477602" target="_blank" rel="noopener noreferrer">Dataset &amp; documentation ↗</a>
                 </li>
                 <li>
-                  Audio remains credited to its respective creators. All versions of each scene share one playback gain and are delivered as four-channel 24-bit FLAC after decoding. The baseline uses the paper's Fuchs-inspired CBR reproduction with 40 ms updates; it is a research reproduction, not an official implementation. Complete processing records and license notices are available in the
+                  Audio remains credited to its respective creators. All versions of each scene share one playback gain and are delivered as four-channel 24-bit FLAC after decoding. Dataset credits, transformations, and license notices are available in the
                   <a href="audio/README.md" target="_blank" rel="noopener noreferrer">audio notes ↗</a>.
                 </li>
               </ul>
